@@ -2,341 +2,244 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KICK THE PIG | Official</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Chained Chaos - Prototype</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;900&family=Orbitron:wght@700&display=swap');
-        
-        :root { --accent: #ff003c; }
-        body { background-color: #050505; color: white; font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; touch-action: none; }
-        
-        /* --- LOGIN & HOME --- */
-        .login-input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; text-align: center; outline: none; transition: 0.3s; }
-        .login-input:focus { border-color: var(--accent); box-shadow: 0 0 20px rgba(255,0,60,0.2); }
-
-        .font-huge { font-family: 'Archivo Black', sans-serif; line-height: 0.8; letter-spacing: -0.05em; }
-        .glitch { font-size: clamp(3rem, 10vw, 8rem); position: relative; text-transform: uppercase; }
-        .glitch::before, .glitch::after { content: "KICK THE PIG"; position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.8; }
-        .glitch::before { color: #0ff; z-index: -1; animation: glitch-anim 0.3s infinite; }
-        .glitch::after { color: var(--accent); z-index: -2; animation: glitch-anim 0.3s infinite reverse; }
-        
-        @keyframes glitch-anim {
-            0% { transform: translate(0); }
-            20% { transform: translate(-3px, 2px); }
-            40% { transform: translate(-3px, -2px); }
-            100% { transform: translate(0); }
+        body {
+            margin: 0;
+            background-color: #222;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
         }
-
-        .play-btn { background: white; color: black; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%); transition: all 0.3s ease; }
-        .play-btn:hover { background: var(--accent); color: white; transform: scale(1.05); }
-
-        /* --- UI GIOCO --- */
-        .weapon-card { transition: all 0.2s; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); }
-        .locked { filter: grayscale(1) opacity(0.4); }
-        .active-weapon { border-color: var(--accent) !important; background: rgba(255,0,60,0.3) !important; }
-        
-        canvas { cursor: none !important; touch-action: none; }
-        
-        #shop-menu { background: rgba(0,0,0,0.95); backdrop-filter: blur(15px); transition: 0.4s; z-index: 60; }
-        .hud-font { font-family: 'Orbitron', sans-serif; }
+        canvas {
+            background-color: #f0f0f0;
+            border: 4px solid #444;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #ui {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .controls {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="fixed inset-0 pointer-events-none opacity-[0.05] z-[100]" style="background-image: url('https://grainy-gradients.vercel.app/noise.svg');"></div>
-
-    <section id="login-screen" class="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black p-6">
-        <h2 class="hud-font text-red-600 text-xs tracking-[0.5em] mb-4">IDENTIFICAZIONE UTENTE</h2>
-        <input type="text" id="username-input" placeholder="ENTER USERNAME" class="login-input px-6 py-4 w-64 hud-font text-sm mb-6">
-        <button onclick="handleLogin()" class="play-btn px-12 py-4 font-black uppercase italic tracking-tighter text-lg">Accedi al Sistema</button>
-    </section>
-
-    <section id="home-screen" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black text-center p-6">
-        <div class="absolute top-10 left-10 text-left opacity-30 font-mono text-[10px] uppercase">
-            User: <span id="current-user-display">---</span><br>V. 2.0.26
-        </div>
-        <div class="glitch-wrapper mb-8">
-            <h1 class="glitch font-huge">KICK THE<br><span class="text-red-600">PIG</span></h1>
-        </div>
-        <button onclick="startGame()" class="play-btn px-16 py-6 text-2xl font-black uppercase italic">Inizia Tortura</button>
-    </section>
-
-    <div id="game-ui" class="hidden fixed inset-0 z-10 pointer-events-none">
-        <div class="absolute top-8 left-8 hud-font pointer-events-auto">
-            <p class="text-red-600 text-[10px] tracking-tighter uppercase mb-1">Portafoglio</p>
-            <h2 id="score" class="text-5xl font-black italic text-white">€ 0</h2>
-        </div>
-
-        <div class="absolute bottom-8 right-8 flex gap-4 pointer-events-auto">
-            <button onclick="toggleShop()" class="bg-white text-black font-black px-8 py-3 uppercase tracking-widest hover:bg-red-600 hover:text-white transition-colors">ARMORY</button>
-        </div>
-
-        <div id="shop-menu" class="absolute right-0 top-0 h-full w-80 translate-x-full p-8 pointer-events-auto border-l border-white/10">
-            <h3 class="font-black text-2xl uppercase mb-8 italic border-b border-red-600 pb-2">Mercato Nero</h3>
-            <div id="weapon-list" class="flex flex-col gap-4">
-                <div id="w-punch" onclick="buyOrSelect('punch', 0)" class="weapon-card active-weapon p-4 rounded-xl flex items-center justify-between">
-                    <div><span class="text-2xl">👊</span> <span class="text-xs font-bold ml-2">PUNCH</span></div>
-                    <span class="text-[10px] opacity-50 uppercase">Owned</span>
-                </div>
-                <div id="w-knife" onclick="buyOrSelect('knife', 500)" class="weapon-card locked p-4 rounded-xl flex items-center justify-between">
-                    <div><span class="text-2xl">🔪</span> <span class="text-xs font-bold ml-2">KNIFE</span></div>
-                    <span class="text-[10px] font-bold text-red-500">€ 500</span>
-                </div>
-                <div id="w-ak47" onclick="buyOrSelect('ak47', 2500)" class="weapon-card locked p-4 rounded-xl flex items-center justify-between">
-                    <div><span class="text-2xl">🔫</span> <span class="text-xs font-bold ml-2">AK-47</span></div>
-                    <span class="text-[10px] font-bold text-red-500">€ 2500</span>
-                </div>
-                <div id="w-bomb" onclick="buyOrSelect('bomb', 10000)" class="weapon-card locked p-4 rounded-xl flex items-center justify-between">
-                    <div><span class="text-2xl">💣</span> <span class="text-xs font-bold ml-2">BOMB</span></div>
-                    <span class="text-[10px] font-bold text-red-500">€ 10k</span>
-                </div>
-            </div>
-            <button onclick="toggleShop()" class="mt-8 text-[10px] uppercase opacity-50">Torna al Massacro</button>
-        </div>
+    <div id="ui">
+        <h1>CHAINED CHAOS</h1>
+        <div id="status">Raggiungete la zona VERDE insieme!</div>
+        <div class="controls">P1: WASD | P2: FRECCE | R: Riavvia</div>
     </div>
 
-    <canvas id="game-canvas" class="block"></canvas>
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
 
-    <script>
-        const canvas = document.getElementById('game-canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let currentUser = "";
-        let score = 0;
-        let currentWeapon = 'punch';
-        let gameActive = false;
-        let shopOpen = false;
-        let isDragging = false;
-        let mouseDownTime = 0;
-        let hits = [];
-        let mouse = { x: 0, y: 0 };
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
 
-        // Fisica differenziata per arma
-        const weapons = {
-            punch: { power: 35, gain: 10, owned: true, icon: '👊', mass: 1 },
-            knife: { power: 15, gain: 30, owned: false, price: 500, icon: '🔪', mass: 0.5 },
-            ak47: { power: 10, gain: 60, owned: false, price: 2500, icon: '🔥', mass: 0.2 },
-            bomb: { power: 120, gain: 500, owned: false, price: 10000, icon: '💥', mass: 5 }
-        };
+    // --- CONFIGURAZIONE GIOCO ---
+    const GRAVITY = 0.5;
+    const JUMP_FORCE = -10;
+    const SPEED = 5;
+    const FRICTION = 0.8;
+    const ROPE_LENGTH = 150; // Lunghezza massima della corda
+    const ROPE_STRENGTH = 0.05; // Quanto è forte l'elastico
 
-        let buddy = { x: 0, y: 0, vx: 0, vy: 0, rotation: 0, rv: 0, r: 60 };
+    // --- INPUT ---
+    const keys = {};
+    window.addEventListener('keydown', e => keys[e.code] = true);
+    window.addEventListener('keyup', e => keys[e.code] = false);
 
-        function handleLogin() {
-            const input = document.getElementById('username-input').value.trim().toUpperCase();
-            if (!input) return alert("Inserisci un Username!");
-            currentUser = input;
-            const savedData = JSON.parse(localStorage.getItem(`KTP_${currentUser}`)) || { score: 0, owned: ['punch'] };
-            score = savedData.score;
-            document.getElementById('score').innerText = `€ ${score}`;
-            for (let w in weapons) {
-                if (savedData.owned.includes(w)) {
-                    weapons[w].owned = true;
-                    const el = document.getElementById('w-' + w);
-                    if (el) {
-                        el.classList.remove('locked');
-                        el.querySelector('span:last-child').innerText = "Owned";
+    // --- CLASSI ---
+    class Player {
+        constructor(x, y, color, controls) {
+            this.x = x;
+            this.y = y;
+            this.w = 30;
+            this.h = 30;
+            this.vx = 0;
+            this.vy = 0;
+            this.color = color;
+            this.controls = controls; // {up, left, right}
+            this.grounded = false;
+        }
+
+        update() {
+            // Controlli
+            if (keys[this.controls.left]) this.vx -= 1;
+            if (keys[this.controls.right]) this.vx += 1;
+            if (keys[this.controls.up] && this.grounded) {
+                this.vy = JUMP_FORCE;
+                this.grounded = false;
+            }
+
+            // Fisica
+            this.vy += GRAVITY;
+            this.vx *= FRICTION;
+
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // Limiti Canvas (Muri laterali)
+            if (this.x < 0) { this.x = 0; this.vx = 0; }
+            if (this.x + this.w > canvas.width) { this.x = canvas.width - this.w; this.vx = 0; }
+            
+            // Morte (Caduta)
+            if (this.y > canvas.height) {
+                resetGame("GAME OVER! Qualcuno è caduto.");
+            }
+        }
+
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+        }
+    }
+
+    class Platform {
+        constructor(x, y, w, h, isGoal = false) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.isGoal = isGoal;
+        }
+
+        draw() {
+            ctx.fillStyle = this.isGoal ? '#4cd137' : '#2f3640';
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+        }
+    }
+
+    // --- INIZIALIZZAZIONE ---
+    let p1, p2, platforms;
+
+    function init() {
+        // Posizioni iniziali
+        p1 = new Player(50, 300, '#e84118', {up: 'KeyW', left: 'KeyA', right: 'KeyD'}); // Rosso
+        p2 = new Player(100, 300, '#0097e6', {up: 'ArrowUp', left: 'ArrowLeft', right: 'ArrowRight'}); // Blu
+
+        // Creazione Livello
+        platforms = [
+            new Platform(0, 400, 200, 20),   // Start
+            new Platform(250, 350, 100, 20), // Salto 1
+            new Platform(400, 250, 100, 20), // Salto 2
+            new Platform(550, 300, 80, 20),  // Salto 3
+            new Platform(680, 200, 120, 20, true) // Arrivo (Verde)
+        ];
+    }
+
+    // --- FISICA CORDA (IL CUORE DEL GIOCO) ---
+    function updateRope() {
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > ROPE_LENGTH) {
+            const force = (distance - ROPE_LENGTH) * ROPE_STRENGTH;
+            const angle = Math.atan2(dy, dx);
+            
+            const fx = Math.cos(angle) * force;
+            const fy = Math.sin(angle) * force;
+
+            // Applica forza ai giocatori (tira l'uno verso l'altro)
+            p1.vx += fx;
+            p1.vy += fy;
+            p2.vx -= fx;
+            p2.vy -= fy;
+        }
+    }
+
+    function checkCollisions(player) {
+        player.grounded = false;
+        platforms.forEach(plat => {
+            // Collisione semplice AABB
+            if (player.x < plat.x + plat.w &&
+                player.x + player.w > plat.x &&
+                player.y < plat.y + plat.h &&
+                player.y + player.h > plat.y) {
+                
+                // Controllo vittoria
+                if (plat.isGoal) {
+                    // Controlliamo se entrambi sono sulla piattaforma finale
+                    if (p1.x > 680 && p2.x > 680) {
+                        document.getElementById('status').innerText = "VITTORIA! Premete R per ricominciare";
+                        document.getElementById('status').style.color = "#4cd137";
                     }
                 }
-            }
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('home-screen').style.display = 'flex';
-            document.getElementById('current-user-display').innerText = currentUser;
-        }
 
-        function saveData() {
-            const owned = Object.keys(weapons).filter(w => weapons[w].owned);
-            localStorage.setItem(`KTP_${currentUser}`, JSON.stringify({ score, owned }));
-        }
-
-        function startGame() {
-            document.getElementById('home-screen').style.display = 'none';
-            document.getElementById('game-ui').classList.remove('hidden');
-            resize();
-            buddy.x = canvas.width / 2;
-            buddy.y = canvas.height / 2;
-            gameActive = true;
-            animate();
-        }
-
-        function toggleShop() {
-            shopOpen = !shopOpen;
-            document.getElementById('shop-menu').style.transform = shopOpen ? 'translateX(0)' : 'translateX(100%)';
-        }
-
-        function buyOrSelect(id, price) {
-            if (weapons[id].owned) {
-                currentWeapon = id;
-                document.querySelectorAll('.weapon-card').forEach(c => c.classList.remove('active-weapon'));
-                document.getElementById('w-' + id).classList.add('active-weapon');
-            } else if (score >= price) {
-                score -= price;
-                weapons[id].owned = true;
-                document.getElementById('score').innerText = `€ ${score}`;
-                document.getElementById('w-' + id).classList.remove('locked');
-                document.getElementById('w-' + id).querySelector('span:last-child').innerText = "Owned";
-                saveData();
-                buyOrSelect(id, 0);
-            }
-        }
-
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-
-        function drawBuddy() {
-            ctx.save();
-            ctx.translate(buddy.x, buddy.y);
-            ctx.rotate(buddy.rotation);
-            ctx.shadowBlur = 15; ctx.shadowColor = "rgba(255,255,255,0.1)";
-
-            ctx.fillStyle = "white";
-            ctx.fillRect(-25, -40, 50, 80);
-            ctx.beginPath();
-            ctx.arc(0, -65, 25, 0, Math.PI * 2);
-            ctx.fillStyle = "#ffdbac";
-            ctx.fill();
-            ctx.strokeStyle = "#fff";
-            ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.moveTo(5, -55); ctx.lineTo(20, -52); ctx.stroke();
-            ctx.fillStyle = "#ff4500";
-            ctx.beginPath(); ctx.arc(22, -52, 2.5, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = "#4b2c20";
-            ctx.fillRect(-28, -75, 56, 12);
-            ctx.fillRect(-12, -50, 24, 18);
-            ctx.strokeStyle = "#ffd700";
-            ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.ellipse(0, -100, 22, 6, 0, 0, Math.PI * 2); ctx.stroke();
-
-            ctx.restore();
-        }
-
-        function drawCursor() {
-            ctx.strokeStyle = "rgba(255, 0, 0, 0.8)";
-            ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 12, 0, Math.PI*2); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(mouse.x - 20, mouse.y); ctx.lineTo(mouse.x + 20, mouse.y); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(mouse.x, mouse.y - 20); ctx.lineTo(mouse.x, mouse.y + 20); ctx.stroke();
-            ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 2, 0, Math.PI*2); ctx.fill();
-        }
-
-        function update() {
-            if (!gameActive) return;
-            if (!isDragging) {
-                // Fisica: Gravità + Attrito
-                buddy.vy += 0.85; 
-                buddy.x += buddy.vx;
-                buddy.y += buddy.vy;
-                buddy.rotation += buddy.rv;
-
-                buddy.vx *= 0.985;
-                buddy.vy *= 0.985;
-                buddy.rv *= 0.96;
-
-                // Collisioni con rimbalzo elastico
-                if (buddy.y > canvas.height - 80) {
-                    buddy.y = canvas.height - 80;
-                    buddy.vy *= -0.6; // Rimbalzo terra
-                    buddy.rv += buddy.vx * 0.01; // La rotazione influenzata dal colpo a terra
+                // Risoluzione collisione (atterraggio)
+                // Controlla se il giocatore stava cadendo VERSO la piattaforma
+                if (player.vy > 0 && player.y + player.h - player.vy <= plat.y) {
+                    player.grounded = true;
+                    player.vy = 0;
+                    player.y = plat.y - player.h;
                 }
-                if (buddy.x < 50) { buddy.x = 50; buddy.vx *= -0.65; }
-                if (buddy.x > canvas.width - 50) { buddy.x = canvas.width - 50; buddy.vx *= -0.65; }
             }
+        });
+    }
+
+    function drawRope() {
+        ctx.beginPath();
+        ctx.moveTo(p1.x + p1.w/2, p1.y + p1.h/2);
+        ctx.lineTo(p2.x + p2.w/2, p2.y + p2.h/2);
+        
+        // Colore corda cambia in base alla tensione
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        ctx.strokeStyle = dist > ROPE_LENGTH ? '#e74c3c' : '#353b48';
+        ctx.lineWidth = dist > ROPE_LENGTH ? 4 : 2;
+        ctx.stroke();
+    }
+
+    function resetGame(msg) {
+        if(msg) document.getElementById('status').innerText = msg;
+        init();
+    }
+
+    // --- GAME LOOP ---
+    function loop() {
+        // Pulisci schermo
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (keys['KeyR']) {
+            resetGame("Raggiungete la zona VERDE insieme!");
         }
 
-        function animate() {
-            let grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width);
-            grad.addColorStop(0, "#1a0510");
-            grad.addColorStop(0.5, "#050505");
-            grad.addColorStop(1, "#000000");
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Aggiorna Giocatori
+        p1.update();
+        p2.update();
 
-            ctx.strokeStyle = "rgba(255, 0, 60, 0.15)";
-            ctx.lineWidth = 1;
-            for(let i=0; i<canvas.width; i+=100) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
-            for(let i=0; i<canvas.height; i+=100) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
+        // Fisica Corda
+        updateRope();
 
-            update();
-            drawBuddy();
-            
-            hits.forEach((hit, i) => {
-                ctx.globalAlpha = hit.life;
-                ctx.font = "60px Inter";
-                ctx.fillText(hit.icon, hit.x-25, hit.y+25);
-                hit.life -= 0.035;
-                if(hit.life <= 0) hits.splice(i, 1);
-            });
-            ctx.globalAlpha = 1;
+        // Collisioni
+        checkCollisions(p1);
+        checkCollisions(p2);
 
-            drawCursor();
-            requestAnimationFrame(animate);
-        }
+        // Disegna tutto
+        platforms.forEach(p => p.draw());
+        drawRope();
+        p1.draw();
+        p2.draw();
 
-        function getPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            const cx = e.touches ? e.touches[0].clientX : e.clientX;
-            const cy = e.touches ? e.touches[0].clientY : e.clientY;
-            return { x: cx - rect.left, y: cy - rect.top };
-        }
+        requestAnimationFrame(loop);
+    }
 
-        const handleDown = (e) => {
-            const pos = getPos(e);
-            const dist = Math.hypot(pos.x - buddy.x, pos.y - buddy.y);
-            mouseDownTime = Date.now();
-            if (dist < 80) isDragging = true;
-        };
+    init();
+    loop();
 
-        const handleMove = (e) => {
-            const pos = getPos(e);
-            mouse.x = pos.x; mouse.y = pos.y;
-            if (isDragging) {
-                buddy.vx = (pos.x - buddy.x) * 0.45;
-                buddy.vy = (pos.y - buddy.y) * 0.45;
-                buddy.x = pos.x;
-                buddy.y = pos.y;
-            }
-        };
-
-        const handleUp = (e) => {
-            const pos = getPos(e);
-            const duration = Date.now() - mouseDownTime;
-            
-            if (isDragging && duration > 150) {
-                isDragging = false;
-                saveData();
-            } else {
-                const dist = Math.hypot(pos.x - buddy.x, pos.y - buddy.y);
-                // Area di colpo aumentata per armi esplosive
-                let reach = currentWeapon === 'bomb' ? 250 : 150;
-                
-                if (dist < reach) {
-                    let w = weapons[currentWeapon];
-                    score += w.gain;
-                    document.getElementById('score').innerText = `€ ${score}`;
-                    hits.push({ x: pos.x, y: pos.y, icon: w.icon, life: 1 });
-                    
-                    const angle = Math.atan2(buddy.y - pos.y, buddy.x - pos.x);
-                    
-                    // Fisica graduale: più massa = più spostamento lento ma violento
-                    buddy.vx += Math.cos(angle) * w.power;
-                    buddy.vy += Math.sin(angle) * w.power - (w.mass * 2); 
-                    buddy.rv = (Math.random()-0.5) * (w.power / 5);
-                    
-                    saveData();
-                }
-                isDragging = false;
-            }
-        };
-
-        canvas.addEventListener('mousedown', handleDown);
-        window.addEventListener('mousemove', handleMove);
-        window.addEventListener('mouseup', handleUp);
-        canvas.addEventListener('touchstart', handleDown);
-        window.addEventListener('touchmove', handleMove);
-        window.addEventListener('touchend', handleUp);
-        window.addEventListener('resize', resize);
-    </script>
+</script>
 </body>
 </html>
