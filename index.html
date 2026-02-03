@@ -2,243 +2,467 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Chained Chaos - Prototype</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chained Chaos - Mobile & PC</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
         body {
             margin: 0;
-            background-color: #222;
+            background-color: #111;
             color: white;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Orbitron', sans-serif;
+            overflow: hidden;
+            touch-action: none; /* Disabilita zoom su mobile */
+        }
+
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #1a1a1a, #000);
+        }
+
+        /* --- MENU INIZIALE --- */
+        #menu {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            overflow: hidden;
+            z-index: 10;
         }
-        canvas {
-            background-color: #f0f0f0;
-            border: 4px solid #444;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-        #ui {
+
+        h1 {
+            font-size: 3rem;
+            color: #00d2ff;
+            text-shadow: 0 0 20px #00d2ff;
+            animation: pulse 2s infinite;
             margin-bottom: 10px;
             text-align: center;
         }
-        .controls {
-            font-size: 12px;
-            color: #aaa;
-            margin-top: 5px;
+
+        @keyframes pulse {
+            0% { opacity: 0.5; text-shadow: 0 0 10px #00d2ff; }
+            50% { opacity: 1; text-shadow: 0 0 30px #00d2ff; }
+            100% { opacity: 0.5; text-shadow: 0 0 10px #00d2ff; }
         }
+
+        .inputs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        input {
+            background: #222;
+            border: 2px solid #00d2ff;
+            color: white;
+            padding: 10px;
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+        }
+
+        button {
+            background: #00d2ff;
+            color: black;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 15px #00d2ff;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .credits {
+            margin-top: 50px;
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .credits span { color: #fff; font-weight: bold; }
+
+        /* --- CONTROLLI MOBILE --- */
+        #mobile-controls {
+            display: none; /* Attivato via JS se mobile */
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            height: 150px;
+            pointer-events: none; /* Lascia passare i click non sui bottoni */
+            z-index: 5;
+        }
+
+        .ctrl-group {
+            position: absolute;
+            bottom: 10px;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .p1-ctrl { left: 20px; }
+        .p2-ctrl { right: 20px; }
+
+        .btn {
+            width: 50px; height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            user-select: none;
+        }
+        .btn:active { background: rgba(255, 255, 255, 0.5); }
+        .jump-btn { width: 60px; height: 60px; background: rgba(0, 210, 255, 0.3); border-color: #00d2ff; }
+
     </style>
 </head>
 <body>
 
-    <div id="ui">
+    <div id="menu">
         <h1>CHAINED CHAOS</h1>
-        <div id="status">Raggiungete la zona VERDE insieme!</div>
-        <div class="controls">P1: WASD | P2: FRECCE | R: Riavvia</div>
+        <div class="inputs">
+            <input type="text" id="nick1" placeholder="Nome Giocatore 1" value="Player 1">
+            <input type="text" id="nick2" placeholder="Nome Giocatore 2" value="Player 2">
+        </div>
+        <button onclick="startGame()">START GAME</button>
+        <div class="credits">Creator <span id="creators">.wxrdd .vyxe</span></div>
     </div>
 
-    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="mobile-controls">
+        <div class="ctrl-group p1-ctrl">
+            <div class="btn" ontouchstart="simulateKey('KeyA', true)" ontouchend="simulateKey('KeyA', false)">←</div>
+            <div class="btn" ontouchstart="simulateKey('KeyD', true)" ontouchend="simulateKey('KeyD', false)">→</div>
+            <div class="btn jump-btn" ontouchstart="simulateKey('KeyW', true)" ontouchend="simulateKey('KeyW', false)">↑</div>
+        </div>
+        <div class="ctrl-group p2-ctrl">
+            <div class="btn" ontouchstart="simulateKey('ArrowLeft', true)" ontouchend="simulateKey('ArrowLeft', false)">←</div>
+            <div class="btn" ontouchstart="simulateKey('ArrowRight', true)" ontouchend="simulateKey('ArrowRight', false)">→</div>
+            <div class="btn jump-btn" ontouchstart="simulateKey('ArrowUp', true)" ontouchend="simulateKey('ArrowUp', false)">↑</div>
+        </div>
+    </div>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // --- CONFIGURAZIONE GIOCO ---
-    const GRAVITY = 0.5;
-    const JUMP_FORCE = -10;
-    const SPEED = 5;
-    const FRICTION = 0.8;
-    const ROPE_LENGTH = 150; // Lunghezza massima della corda
-    const ROPE_STRENGTH = 0.05; // Quanto è forte l'elastico
+    // Adatta canvas allo schermo
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
 
-    // --- INPUT ---
+    // Rileva Mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if(isMobile) document.getElementById('mobile-controls').style.display = 'block';
+
+    // --- VARIABILI GLOBALI ---
+    let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER
+    let cameraX = 0;
+
+    const GRAVITY = 0.6;
+    const FRICTION = 0.85;
+    const JUMP_FORCE = -12;
+    const SPEED = 0.8;
+    const ROPE_LEN = 180;
+    const ROPE_K = 0.08; // Elasticità
+
     const keys = {};
     window.addEventListener('keydown', e => keys[e.code] = true);
     window.addEventListener('keyup', e => keys[e.code] = false);
 
+    // Funzione per i tasti touch
+    function simulateKey(code, state) {
+        keys[code] = state;
+    }
+
     // --- CLASSI ---
-    class Player {
-        constructor(x, y, color, controls) {
+    class Stickman {
+        constructor(x, y, color, controls, name) {
             this.x = x;
             this.y = y;
-            this.w = 30;
-            this.h = 30;
             this.vx = 0;
             this.vy = 0;
+            this.w = 20; // Hitbox width
+            this.h = 50; // Hitbox height
             this.color = color;
-            this.controls = controls; // {up, left, right}
+            this.controls = controls;
+            this.name = name;
             this.grounded = false;
+            this.walkFrame = 0;
         }
 
         update() {
-            // Controlli
-            if (keys[this.controls.left]) this.vx -= 1;
-            if (keys[this.controls.right]) this.vx += 1;
+            // Movimento
+            if (keys[this.controls.left]) { this.vx -= SPEED; this.walkFrame += 0.2; }
+            if (keys[this.controls.right]) { this.vx += SPEED; this.walkFrame += 0.2; }
             if (keys[this.controls.up] && this.grounded) {
                 this.vy = JUMP_FORCE;
                 this.grounded = false;
             }
 
-            // Fisica
+            // Fisica Base
             this.vy += GRAVITY;
             this.vx *= FRICTION;
-
             this.x += this.vx;
             this.y += this.vy;
 
-            // Limiti Canvas (Muri laterali)
-            if (this.x < 0) { this.x = 0; this.vx = 0; }
-            if (this.x + this.w > canvas.width) { this.x = canvas.width - this.w; this.vx = 0; }
-            
-            // Morte (Caduta)
-            if (this.y > canvas.height) {
-                resetGame("GAME OVER! Qualcuno è caduto.");
-            }
+            // Reset animazione se fermo
+            if (Math.abs(this.vx) < 0.1) this.walkFrame = 0;
+
+            // Morte caduta
+            if (this.y > 1000) resetLevel("CADUTA NEL VUOTO!");
         }
 
         draw() {
             ctx.fillStyle = this.color;
-            ctx.fillRect(this.x, this.y, this.w, this.h);
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            // Disegna Nome
+            ctx.font = "12px 'Orbitron'";
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.fillText(this.name, this.x + this.w/2, this.y - 15);
+
+            // --- DISEGNO STICKMAN ---
+            const centerX = this.x + this.w/2;
+            const topY = this.y;
+            const bottomY = this.y + this.h;
+            
+            // Testa
+            ctx.beginPath();
+            ctx.arc(centerX, topY + 10, 8, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Corpo
+            ctx.beginPath();
+            ctx.moveTo(centerX, topY + 18);
+            ctx.lineTo(centerX, topY + 35);
+            ctx.stroke();
+
+            // Braccia (ondeggiano)
+            const armSwing = Math.sin(this.walkFrame) * 5;
+            ctx.beginPath();
+            ctx.moveTo(centerX, topY + 20);
+            ctx.lineTo(centerX - 10 + armSwing, topY + 30); // Braccio SX
+            ctx.moveTo(centerX, topY + 20);
+            ctx.lineTo(centerX + 10 - armSwing, topY + 30); // Braccio DX
+            ctx.stroke();
+
+            // Gambe (camminata)
+            const legSwing = Math.sin(this.walkFrame) * 8;
+            ctx.beginPath();
+            ctx.moveTo(centerX, topY + 35);
+            ctx.lineTo(centerX - 5 - legSwing, bottomY); // Gamba SX
+            ctx.moveTo(centerX, topY + 35);
+            ctx.lineTo(centerX + 5 + legSwing, bottomY); // Gamba DX
+            ctx.stroke();
         }
     }
 
-    class Platform {
-        constructor(x, y, w, h, isGoal = false) {
-            this.x = x;
-            this.y = y;
-            this.w = w;
-            this.h = h;
-            this.isGoal = isGoal;
+    class Block {
+        constructor(x, y, w, h, type = 'normal') {
+            this.x = x; this.y = y; this.w = w; this.h = h;
+            this.type = type; // normal, lava, goal
         }
 
         draw() {
-            ctx.fillStyle = this.isGoal ? '#4cd137' : '#2f3640';
-            ctx.fillRect(this.x, this.y, this.w, this.h);
+            if (this.type === 'normal') {
+                ctx.fillStyle = '#333';
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+                // Bordo neon
+                ctx.strokeStyle = '#555';
+                ctx.strokeRect(this.x, this.y, this.w, this.h);
+            } else if (this.type === 'lava') {
+                ctx.fillStyle = '#ff3333';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = 'red';
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.shadowBlur = 0;
+            } else if (this.type === 'goal') {
+                ctx.fillStyle = '#33ff33';
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#33ff33';
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.shadowBlur = 0;
+            }
         }
     }
 
-    // --- INIZIALIZZAZIONE ---
-    let p1, p2, platforms;
+    // --- SETUP GIOCO ---
+    let p1, p2, blocks = [];
 
-    function init() {
-        // Posizioni iniziali
-        p1 = new Player(50, 300, '#e84118', {up: 'KeyW', left: 'KeyA', right: 'KeyD'}); // Rosso
-        p2 = new Player(100, 300, '#0097e6', {up: 'ArrowUp', left: 'ArrowLeft', right: 'ArrowRight'}); // Blu
+    function startGame() {
+        const n1 = document.getElementById('nick1').value || "Player 1";
+        const n2 = document.getElementById('nick2').value || "Player 2";
+        
+        p1 = new Stickman(100, 300, '#00d2ff', {up: 'KeyW', left: 'KeyA', right: 'KeyD'}, n1);
+        p2 = new Stickman(150, 300, '#ff0055', {up: 'ArrowUp', left: 'ArrowLeft', right: 'ArrowRight'}, n2);
+        
+        createLevel();
+        document.getElementById('menu').style.display = 'none';
+        gameState = 'PLAYING';
+        loop();
+    }
 
-        // Creazione Livello
-        platforms = [
-            new Platform(0, 400, 200, 20),   // Start
-            new Platform(250, 350, 100, 20), // Salto 1
-            new Platform(400, 250, 100, 20), // Salto 2
-            new Platform(550, 300, 80, 20),  // Salto 3
-            new Platform(680, 200, 120, 20, true) // Arrivo (Verde)
+    function createLevel() {
+        // Generazione manuale livello lungo
+        blocks = [
+            new Block(0, 400, 300, 50), // Start
+            new Block(400, 350, 150, 30),
+            new Block(650, 250, 100, 30),
+            
+            // Zona pericolosa (Lava)
+            new Block(800, 450, 400, 20, 'lava'), 
+            new Block(850, 300, 80, 20),
+            new Block(1000, 220, 80, 20),
+            
+            // Salto lungo
+            new Block(1200, 350, 200, 30),
+            new Block(1500, 300, 50, 150), // Muro verticale
+            new Block(1650, 400, 100, 30),
+
+            // Scala finale
+            new Block(1850, 300, 80, 20),
+            new Block(2000, 200, 80, 20),
+            new Block(2200, 150, 200, 20, 'goal') // VITTORIA
         ];
     }
 
-    // --- FISICA CORDA (IL CUORE DEL GIOCO) ---
-    function updateRope() {
+    function updatePhysics() {
+        // Fisica Corda (Hooke's Law + Smorzamento)
         const dx = p2.x - p1.x;
         const dy = p2.y - p1.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const dist = Math.sqrt(dx*dx + dy*dy);
 
-        if (distance > ROPE_LENGTH) {
-            const force = (distance - ROPE_LENGTH) * ROPE_STRENGTH;
+        if (dist > ROPE_LEN) {
+            const force = (dist - ROPE_LEN) * ROPE_K;
             const angle = Math.atan2(dy, dx);
-            
             const fx = Math.cos(angle) * force;
             const fy = Math.sin(angle) * force;
 
-            // Applica forza ai giocatori (tira l'uno verso l'altro)
-            p1.vx += fx;
-            p1.vy += fy;
-            p2.vx -= fx;
-            p2.vy -= fy;
+            p1.vx += fx; p1.vy += fy;
+            p2.vx -= fx; p2.vy -= fy;
         }
+
+        // Camera Follow (Midpoint)
+        const midX = (p1.x + p2.x) / 2;
+        // Target camera position (center of screen)
+        const targetCamX = midX - canvas.width / 2;
+        // Smooth camera
+        cameraX += (targetCamX - cameraX) * 0.1;
+        // Limiti camera (non andare prima dell'inizio)
+        if(cameraX < 0) cameraX = 0;
     }
 
     function checkCollisions(player) {
         player.grounded = false;
-        platforms.forEach(plat => {
-            // Collisione semplice AABB
-            if (player.x < plat.x + plat.w &&
-                player.x + player.w > plat.x &&
-                player.y < plat.y + plat.h &&
-                player.y + player.h > plat.y) {
+        for (let b of blocks) {
+            // AABB Collision
+            if (player.x < b.x + b.w && player.x + player.w > b.x &&
+                player.y < b.y + b.h && player.y + player.h > b.y) {
                 
-                // Controllo vittoria
-                if (plat.isGoal) {
-                    // Controlliamo se entrambi sono sulla piattaforma finale
-                    if (p1.x > 680 && p2.x > 680) {
-                        document.getElementById('status').innerText = "VITTORIA! Premete R per ricominciare";
-                        document.getElementById('status').style.color = "#4cd137";
-                    }
-                }
+                if (b.type === 'lava') resetLevel("BRUCIATI DALLA LAVA!");
+                if (b.type === 'goal') finishGame();
 
-                // Risoluzione collisione (atterraggio)
-                // Controlla se il giocatore stava cadendo VERSO la piattaforma
-                if (player.vy > 0 && player.y + player.h - player.vy <= plat.y) {
+                // Risoluzione semplice atterraggio
+                if (player.vy > 0 && player.y + player.h - player.vy <= b.y + 10) {
                     player.grounded = true;
                     player.vy = 0;
-                    player.y = plat.y - player.h;
+                    player.y = b.y - player.h;
+                } else if (player.vy < 0 && player.y - player.vy >= b.y + b.h - 10) {
+                     // Colpo testa
+                     player.vy = 0;
+                     player.y = b.y + b.h;
+                } else if (player.vx > 0) { // Muro sinistra
+                    player.vx = 0;
+                    player.x = b.x - player.w;
+                } else if (player.vx < 0) { // Muro destra
+                    player.vx = 0;
+                    player.x = b.x + b.w;
                 }
             }
-        });
+        }
     }
 
     function drawRope() {
+        const startX = p1.x + p1.w/2;
+        const startY = p1.y + p1.h/2;
+        const endX = p2.x + p2.w/2;
+        const endY = p2.y + p2.h/2;
+
         ctx.beginPath();
-        ctx.moveTo(p1.x + p1.w/2, p1.y + p1.h/2);
-        ctx.lineTo(p2.x + p2.w/2, p2.y + p2.h/2);
+        ctx.moveTo(startX, startY);
+        // Curva la corda se non è tesa (effetto gravità sulla corda)
+        const cx = (startX + endX) / 2;
+        const cy = (startY + endY) / 2 + 50; // Abbassamento corda
         
-        // Colore corda cambia in base alla tensione
-        const dx = p2.x - p1.x;
-        const dy = p2.y - p1.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        
-        ctx.strokeStyle = dist > ROPE_LENGTH ? '#e74c3c' : '#353b48';
-        ctx.lineWidth = dist > ROPE_LENGTH ? 4 : 2;
-        ctx.stroke();
-    }
-
-    function resetGame(msg) {
-        if(msg) document.getElementById('status').innerText = msg;
-        init();
-    }
-
-    // --- GAME LOOP ---
-    function loop() {
-        // Pulisci schermo
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (keys['KeyR']) {
-            resetGame("Raggiungete la zona VERDE insieme!");
+        const dist = Math.sqrt(Math.pow(endX-startX, 2) + Math.pow(endY-startY, 2));
+        if (dist < ROPE_LEN) {
+             ctx.quadraticCurveTo(cx, cy, endX, endY);
+        } else {
+             ctx.lineTo(endX, endY);
         }
+        
+        ctx.strokeStyle = dist > ROPE_LEN ? '#ff3333' : '#fff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash(dist > ROPE_LEN ? [5, 5] : []); // Tratteggiata se tesa
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
 
-        // Aggiorna Giocatori
+    function resetLevel(msg) {
+        alert(msg);
+        p1.x = 100; p1.y = 300; p1.vx=0; p1.vy=0;
+        p2.x = 150; p2.y = 300; p2.vx=0; p2.vy=0;
+        cameraX = 0;
+    }
+
+    function finishGame() {
+        alert("LIVELLO COMPLETATO! Siete leggende!");
+        resetLevel("Ricomincia");
+    }
+
+    function loop() {
+        if (gameState !== 'PLAYING') return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
         p1.update();
         p2.update();
-
-        // Fisica Corda
-        updateRope();
-
-        // Collisioni
+        updatePhysics();
         checkCollisions(p1);
         checkCollisions(p2);
 
-        // Disegna tutto
-        platforms.forEach(p => p.draw());
+        // Applica Camera
+        ctx.save();
+        ctx.translate(-cameraX, 0);
+
+        // Disegna livello
+        blocks.forEach(b => b.draw());
         drawRope();
         p1.draw();
         p2.draw();
 
+        ctx.restore();
+
         requestAnimationFrame(loop);
     }
-
-    init();
-    loop();
 
 </script>
 </body>
